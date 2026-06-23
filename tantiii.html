@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Text Portrait Effect</title>
+
+<style>
+
+/* ==========================================
+   CONFIGURACIÓN GENERAL
+   ========================================== */
+
+/*
+    Quitamos márgenes por defecto
+    y hacemos que todo ocupe la pantalla.
+*/
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:black;
+    color:white;
+    font-family:monospace;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    min-height:100vh;
+}
+
+
+/* ==========================================
+   BOTÓN PARA SUBIR IMAGEN
+   ========================================== */
+
+.controls{
+    margin-top:20px;
+    margin-bottom:20px;
+}
+
+/*
+   Canvas oculto.
+   Lo usamos para leer los píxeles
+   de la imagen cargada.
+*/
+
+canvas{
+    display:none;
+}
+
+
+/* ==========================================
+   CONTENEDOR DEL TEXTO
+   ========================================== */
+
+#portrait{
+
+    white-space:pre;
+
+    line-height:7px;
+
+    font-size:8px;
+
+    font-weight:bold;
+
+    letter-spacing:1px;
+
+    overflow:auto;
+
+    max-width:95vw;
+
+    max-height:80vh;
+
+    padding:20px;
+
+}
+
+
+/* ==========================================
+   EFECTO HOLOGRÁFICO
+   ========================================== */
+
+/*
+   Gradiente animado
+   entre violeta y lila
+*/
+
+.holographic{
+
+    background:linear-gradient(
+        90deg,
+        #7a00ff,
+        #b300ff,
+        #d980ff,
+        #7a00ff
+    );
+
+    background-size:300% 300%;
+
+    animation:holo 5s infinite linear;
+
+    -webkit-background-clip:text;
+    color:transparent;
+
+}
+
+
+/*
+   Animación del gradiente
+*/
+
+@keyframes holo{
+
+    0%{
+        background-position:0% 50%;
+    }
+
+    100%{
+        background-position:100% 50%;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- ==========================================
+     INPUT DE IMAGEN
+     ========================================== -->
+
+<div class="controls">
+
+    <!--
+         Aquí el usuario selecciona una imagen.
+    -->
+
+    <input type="file" id="imageInput" accept="image/*">
+
+</div>
+
+
+<!--
+     Canvas oculto para procesar la imagen
+-->
+
+<canvas id="canvas"></canvas>
+
+
+<!--
+     Aquí aparecerá el retrato generado
+-->
+
+<pre id="portrait" class="holographic"></pre>
+
+
+<script>
+
+/* ==========================================
+   ELEMENTOS DEL HTML
+   ========================================== */
+
+const imageInput = document.getElementById("imageInput");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const portrait = document.getElementById("portrait");
+
+
+/* ==========================================
+   CARACTERES DISPONIBLES
+   ========================================== */
+
+/*
+   Más densidad = más detalle.
+
+   Los caracteres más "gruesos"
+   representan zonas oscuras.
+
+   Los espacios representan zonas claras.
+*/
+
+const chars =
+"@#W$9876543210?!abc;:+=-,._ ";
+
+
+/* ==========================================
+   AL CARGAR UNA IMAGEN
+   ========================================== */
+
+imageInput.addEventListener("change", function(event){
+
+    const file = event.target.files[0];
+
+    if(!file) return;
+
+    const img = new Image();
+
+    img.onload = function(){
+
+        /*
+            Reducimos tamaño para
+            evitar millones de letras.
+        */
+
+        const width = 200;
+
+        const height =
+        img.height * (width / img.width);
+
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.drawImage(
+            img,
+            0,
+            0,
+            width,
+            height
+        );
+
+        generateTextPortrait();
+
+    }
+
+    img.src = URL.createObjectURL(file);
+
+});
+
+
+/* ==========================================
+   GENERADOR DEL RETRATO
+   ========================================== */
+
+function generateTextPortrait(){
+
+    const imageData =
+    ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const pixels = imageData.data;
+
+    let result = "";
+
+    for(
+        let y = 0;
+        y < canvas.height;
+        y++
+    ){
+
+        for(
+            let x = 0;
+            x < canvas.width;
+            x++
+        ){
+
+            const index =
+            (y * canvas.width + x) * 4;
+
+            const r = pixels[index];
+            const g = pixels[index + 1];
+            const b = pixels[index + 2];
+
+            /*
+                Convertimos RGB
+                a brillo.
+            */
+
+            const brightness =
+            (r + g + b) / 3;
+
+            /*
+                Elegimos un carácter
+                según la oscuridad.
+            */
+
+            const charIndex =
+            Math.floor(
+                (brightness / 255)
+                * (chars.length - 1)
+            );
+
+            result += chars[charIndex];
+
+        }
+
+        result += "\n";
+
+    }
+
+    portrait.textContent = result;
+
+}
+
+</script>
+
+</body>
+</html>
